@@ -4,7 +4,12 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.xrp.XRPGyro;
 import edu.wpi.first.wpilibj.xrp.XRPRangefinder;
 import frc.robot.commands.ExampleCommand;
@@ -19,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.RunCommand;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+  private final SendableChooser<Command> autoChooser;
   // The robot's subsystems and commands are defined here...
   private final XRPDrivetrain m_xrpDrivetrain = new XRPDrivetrain();
     private final XboxController m_joy = new XboxController(0);
@@ -35,6 +41,8 @@ public class RobotContainer {
         return; 
     }, m_xrpDrivetrain));
 
+    autoChooser = AutoBuilder.buildAutoChooser();
+    SmartDashboard.putData("Auto Chooser", autoChooser);
   }
 
   /**
@@ -51,7 +59,6 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An ExampleCommand will run in autonomous
-    return m_autoCommand;
+    return autoChooser.getSelected();
   }
 }

@@ -4,6 +4,11 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.util.PIDConstants;
+
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -12,4 +17,31 @@ package frc.robot;
  * <p>It is advised to statically import this class (or one of its inner classes) wherever the
  * constants are needed, to reduce verbosity.
  */
-public final class Constants {}
+public final class Constants {
+    public static double robotPeriod = 0.02 * 5; 
+
+    public static class XRPDrivetrain {
+        
+        public static final double scaleDownMultiplier = 1/4.0; // scale the robot down 
+
+
+        public static final double kCountsPerMotorShaftRev = 12.0;
+        private static final double kGearRatio =
+        (30.0 / 14.0) * (28.0 / 16.0) * (36.0 / 9.0) * (26.0 / 8.0); // 48.75:1
+        public static final double kCountsPerRevolution = kCountsPerMotorShaftRev * kGearRatio; // 585.0
+        public static final double kWheelDiameterMeters = 60.0/1000 / scaleDownMultiplier; // 70 mm
+
+        public static final double distancePerPulse = (Math.PI * kWheelDiameterMeters) / kCountsPerRevolution; 
+
+
+        // tuned constants (use https://github.com/bb-frc-workshops/romi-examples/tree/main/romi-characterization-sysid)
+        public static final double kTrackWidth = 0.155 / scaleDownMultiplier; 
+        public static final PIDConstants kWheelPIDLeft = new PIDConstants(0/*2.278 */, 0); 
+        public static final SimpleMotorFeedforward driveFFLeft = new SimpleMotorFeedforward(2.2204, 4.9004, 1.1947); 
+
+        public static final PIDConstants kWheelPIDRight = new PIDConstants(0/*2.278 */, 0); 
+        public static final SimpleMotorFeedforward driveFFRight = new SimpleMotorFeedforward(1.925286, 5.774, 1.676); 
+
+        public static final DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(kTrackWidth); 
+    }
+}

@@ -1,20 +1,21 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot.subsystems;
 
-import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.xrp.XRPMotor;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class XRPDrivetrain extends SubsystemBase {
-  private static final double kGearRatio =
-      (30.0 / 14.0) * (28.0 / 16.0) * (36.0 / 9.0) * (26.0 / 8.0); // 48.75:1
-  private static final double kCountsPerMotorShaftRev = 12.0;
-  private static final double kCountsPerRevolution = kCountsPerMotorShaftRev * kGearRatio; // 585.0
-  private static final double kWheelDiameterInch = 2.3622; // 60 mm
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.xrp.XRPGyro;
+import edu.wpi.first.wpilibj.xrp.XRPMotor;
+import frc.robot.Constants;
+
+public class XRPDrivetrain extends BaseDrivetrain {
 
   // The XRP has the left and right motors set to
   // channels 0 and 1 respectively
@@ -26,44 +27,153 @@ public class XRPDrivetrain extends SubsystemBase {
   private final Encoder m_leftEncoder = new Encoder(4, 5);
   private final Encoder m_rightEncoder = new Encoder(6, 7);
 
-  // Set up the differential drive controller
-  private final DifferentialDrive m_diffDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
+  private final XRPGyro gyro = new XRPGyro(); 
+
+  private final DifferentialDriveOdometry odometry; 
+
+  private final PIDController ctrlLeft = new PIDController(Constants.XRPDrivetrain.kWheelPIDLeft.kP, Constants.XRPDrivetrain.kWheelPIDLeft.kI, Constants.XRPDrivetrain.kWheelPIDLeft.kD);
+  private final PIDController ctrlRight = new PIDController(Constants.XRPDrivetrain.kWheelPIDRight.kP, Constants.XRPDrivetrain.kWheelPIDRight.kI, Constants.XRPDrivetrain.kWheelPIDRight.kD);
+
+  private Field2d m_field = new Field2d(); 
+
+  // TODO: WPILib 2025.0.0 should relieve the need to manually estimate velocity
+  private double leftDist = 0; 
+  private double rightDist = 0; 
+
+  private double curLeftDist = 0; 
+  private double curRightDist = 0; 
 
   /** Creates a new XRPDrivetrain. */
   public XRPDrivetrain() {
+
     // Use inches as unit for encoder distances
-    m_leftEncoder.setDistancePerPulse((Math.PI * kWheelDiameterInch) / kCountsPerRevolution);
-    m_rightEncoder.setDistancePerPulse((Math.PI * kWheelDiameterInch) / kCountsPerRevolution);
+    m_leftEncoder.setDistancePerPulse(Constants.XRPDrivetrain.distancePerPulse);
+    m_rightEncoder.setDistancePerPulse(Constants.XRPDrivetrain.distancePerPulse);
     resetEncoders();
 
     // Invert right side since motor is flipped
     m_rightMotor.setInverted(true);
+
+    this.odometry = new DifferentialDriveOdometry(getAngle(), 0, 0); 
   }
 
-  public void arcadeDrive(double xaxisSpeed, double zaxisRotate) {
-    m_diffDrive.arcadeDrive(xaxisSpeed, zaxisRotate);
+  public void arcadeDrive(double forwardMPS, double rotateRPS) {
+    // m_diffDrive.arcadeDrive(xaxisSpeed, zaxisRotate);
+    driveSpeeds(new ChassisSpeeds(forwardMPS, 0, rotateRPS));
+  }
+
+  public void driveSpeeds(ChassisSpeeds speeds) {
+    // speeds.vxMetersPerSecond *= Constants.Drivetrain.scaleDownMultiplier; 
+    DifferentialDriveWheelSpeeds wheelSpeeds = Constants.XRPDrivetrain.kinematics.toWheelSpeeds(speeds); 
+
+    double leftFF = Constants.XRPDrivetrain.driveFFLeft.calculate(wheelSpeeds.leftMetersPerSecond);
+    double rightFF = Constants.XRPDrivetrain.driveFFRight.calculate(wheelSpeeds.rightMetersPerSecond); 
+
+    double leftOut = leftFF + ctrlLeft.calculate(getLeftSpeed(), wheelSpeeds.leftMetersPerSecond); 
+    double rightOut = rightFF + ctrlRight.calculate(getRightSpeed(), wheelSpeeds.rightMetersPerSecond);
+
+    driveVoltage(leftOut, rightOut);
+  }
+
+  public void driveVoltage(double leftVolts, double rightVolts) {
+    m_leftMotor.setVoltage(leftVolts);
+    m_rightMotor.setVoltage(rightVolts);
   }
 
   public void resetEncoders() {
     m_leftEncoder.reset();
     m_rightEncoder.reset();
+
+    leftDist = 0; 
+    rightDist = 0; 
   }
 
-  public double getLeftDistanceInch() {
+  public double getLeftDistanceMeters() {
     return m_leftEncoder.getDistance();
   }
 
-  public double getRightDistanceInch() {
+  public double getRightDistanceMeters() {
     return m_rightEncoder.getDistance();
+  }
+
+  public Rotation2d getAngle() {
+    return Rotation2d.fromDegrees(gyro.getAngle()); 
+  }
+
+  public Pose2d getPose() {
+    return odometry.getPoseMeters(); 
+  }
+
+  public void resetPose(Pose2d pose) {
+    odometry.resetPosition(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance(), pose);
+  }
+
+  public double getLeftSpeed() {
+    return (this.curLeftDist - this.leftDist) / Constants.robotPeriod; 
+  }
+
+  public double getRightSpeed() {
+    return (this.curRightDist - this.rightDist) / Constants.robotPeriod;  
+  }
+
+  public double getLeftVolts() {
+    return m_leftMotor.get() * RobotController.getInputVoltage(); 
+  }
+
+  public double getRightVolts() {
+    return m_rightMotor.get() * RobotController.getInputVoltage(); 
+  }
+
+  public Field2d getField() {
+    return this.m_field; 
   }
 
   @Override
   public void periodic() {
+
     // This method will be called once per scheduler run
+    this.odometry.update(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance()); 
+
+    this.m_field.setRobotPose(getPose());
+    SmartDashboard.putData(this.m_field); 
+    // SmartDashboard.putNumber("gyro angle", getAngle().getDegrees()); 
+
+
+    // SmartDashboard.putNumber("Total Voltage", RobotController.getInputVoltage()); 
+
+    // SmartDashboard.putNumber("Left Volts", getLeftVolts()); 
+    // SmartDashboard.putNumber("Left Last Distance", leftDist); 
+    // SmartDashboard.putNumber("Left Distance", getLeftDistanceMeters()); 
+    // SmartDashboard.putNumber("Left Velo", getLeftSpeed()); 
+
+    // SmartDashboard.putNumber("Left Rate", m_leftEncoder.getRate());
+    // SmartDashboard.putNumber("Right Rate", m_rightEncoder.getRate()); 
+
+    // SmartDashboard.putNumber("Left Period", m_leftEncoder.getPeriod()); 
+    // SmartDashboard.putNumber("Right Period", m_rightEncoder.getPeriod()); 
+
+    
+    // SmartDashboard.putNumber("Right Velo", getRightSpeed()); 
+    
+    super.periodic();
+
+    // if (loopsCount >= maxLoopsCount) {
+    //   loopsCount = 0; 
+      leftDist = this.curLeftDist; 
+      rightDist = this.curRightDist; 
+    this.curLeftDist = getLeftDistanceMeters(); 
+    this.curRightDist = getRightDistanceMeters(); 
+
+    //   lastLeftSpeed = (this.curLeftDist - leftDist) / 0.02 / maxLoopsCount; 
+    //   lastRightSpeed = (this.curRightDist - rightDist) / 0.02 / maxLoopsCount; 
+    // } else loopsCount++; 
+
+
+    
   }
 
-  @Override
-  public void simulationPeriodic() {
-    // This method will be called once per scheduler run during simulation
-  }
+    @Override
+    public ChassisSpeeds getChassisSpeeds() {
+        return Constants.XRPDrivetrain.kinematics.toChassisSpeeds(new DifferentialDriveWheelSpeeds(getLeftSpeed(), getRightSpeed())); 
+    }
 }
