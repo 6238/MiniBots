@@ -144,24 +144,6 @@ public class XRPDrivetrain extends BaseDrivetrain {
     this.odometry.update(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance());
     this.m_field.setRobotPose(getPose());
     SmartDashboard.putData(this.m_field);
-    // System.out.println(getAngle());
-
-    // SmartDashboard.putNumber("gyro angle", getAngle().getDegrees());
-
-    // SmartDashboard.putNumber("Total Voltage", RobotController.getInputVoltage());
-
-    // SmartDashboard.putNumber("Left Volts", getLeftVolts());
-    // SmartDashboard.putNumber("Left Last Distance", leftDist);
-    // SmartDashboard.putNumber("Left Distance", getLeftDistanceMeters());
-    // SmartDashboard.putNumber("Left Velo", getLeftSpeed());
-
-    // SmartDashboard.putNumber("Left Rate", m_leftEncoder.getRate());
-    // SmartDashboard.putNumber("Right Rate", m_rightEncoder.getRate());
-
-    // SmartDashboard.putNumber("Left Period", m_leftEncoder.getPeriod());
-    // SmartDashboard.putNumber("Right Period", m_rightEncoder.getPeriod());
-
-    // SmartDashboard.putNumber("Right Velo", getRightSpeed());
 
     super.periodic();
 

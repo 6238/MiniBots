@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import org.littletonrobotics.junction.Logger;
 
 public abstract class BaseDrivetrain extends SubsystemBase {
 
@@ -68,14 +69,17 @@ public abstract class BaseDrivetrain extends SubsystemBase {
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
-    // SmartDashboard.putData(getField());
+    Logger.recordOutput("Drive/Left/Velocity", getLeftSpeed());
+    Logger.recordOutput("Drive/Right/Velocity", getRightSpeed());
 
-    // SmartDashboard.putNumber("Actual Left Speed", getLeftSpeed());
-    // SmartDashboard.putNumber("Actual Right Speed", getRightSpeed());
+    Logger.recordOutput("Drive/Left/Distance", getLeftDistanceMeters());
+    Logger.recordOutput("Drive/Right/Distance", getRightDistanceMeters());
 
-    // SmartDashboard.putNumber("Robot Actual Forward", getChassisSpeeds().vxMetersPerSecond);
-    // SmartDashboard.putNumber("Robot Actual Turn", getChassisSpeeds().omegaRadiansPerSecond);
+    Logger.recordOutput("Drive/Left/Voltage", getLeftVolts());
+    Logger.recordOutput("Drive/Right/Voltage", getRightVolts());
+
+    Logger.recordOutput("Drive/Angle", getAngle().getDegrees());
+    Logger.recordOutput("Drive/Pose", getPose());
   }
 
   @Override
