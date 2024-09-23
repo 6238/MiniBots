@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -27,21 +26,29 @@ public class XRPDrivetrain extends BaseDrivetrain {
   private final Encoder m_leftEncoder = new Encoder(4, 5);
   private final Encoder m_rightEncoder = new Encoder(6, 7);
 
-  private final XRPGyro gyro = new XRPGyro(); 
+  private final XRPGyro gyro = new XRPGyro();
 
-  private final DifferentialDriveOdometry odometry; 
+  private final DifferentialDriveOdometry odometry;
 
-  private final PIDController ctrlLeft = new PIDController(Constants.XRPDrivetrain.kWheelPIDLeft.kP, Constants.XRPDrivetrain.kWheelPIDLeft.kI, Constants.XRPDrivetrain.kWheelPIDLeft.kD);
-  private final PIDController ctrlRight = new PIDController(Constants.XRPDrivetrain.kWheelPIDRight.kP, Constants.XRPDrivetrain.kWheelPIDRight.kI, Constants.XRPDrivetrain.kWheelPIDRight.kD);
+  private final PIDController ctrlLeft =
+      new PIDController(
+          Constants.XRPDrivetrain.kWheelPIDLeft.kP,
+          Constants.XRPDrivetrain.kWheelPIDLeft.kI,
+          Constants.XRPDrivetrain.kWheelPIDLeft.kD);
+  private final PIDController ctrlRight =
+      new PIDController(
+          Constants.XRPDrivetrain.kWheelPIDRight.kP,
+          Constants.XRPDrivetrain.kWheelPIDRight.kI,
+          Constants.XRPDrivetrain.kWheelPIDRight.kD);
 
-  private Field2d m_field = new Field2d(); 
+  private Field2d m_field = new Field2d();
 
   // TODO: WPILib 2025.0.0 should relieve the need to manually estimate velocity
-  private double leftDist = 0; 
-  private double rightDist = 0; 
+  private double leftDist = 0;
+  private double rightDist = 0;
 
-  private double curLeftDist = 0; 
-  private double curRightDist = 0; 
+  private double curLeftDist = 0;
+  private double curRightDist = 0;
 
   /** Creates a new XRPDrivetrain. */
   public XRPDrivetrain() {
@@ -54,7 +61,7 @@ public class XRPDrivetrain extends BaseDrivetrain {
     // Invert right side since motor is flipped
     m_rightMotor.setInverted(true);
 
-    this.odometry = new DifferentialDriveOdometry(getAngle(), 0, 0); 
+    this.odometry = new DifferentialDriveOdometry(getAngle(), 0, 0);
   }
 
   public void arcadeDrive(double forwardMPS, double rotateRPS) {
@@ -63,14 +70,17 @@ public class XRPDrivetrain extends BaseDrivetrain {
   }
 
   public void driveSpeeds(ChassisSpeeds speeds) {
-    // speeds.vxMetersPerSecond *= Constants.Drivetrain.scaleDownMultiplier; 
-    DifferentialDriveWheelSpeeds wheelSpeeds = Constants.XRPDrivetrain.kinematics.toWheelSpeeds(speeds); 
+    // speeds.vxMetersPerSecond *= Constants.Drivetrain.scaleDownMultiplier;
+    DifferentialDriveWheelSpeeds wheelSpeeds =
+        Constants.XRPDrivetrain.kinematics.toWheelSpeeds(speeds);
 
     double leftFF = Constants.XRPDrivetrain.driveFFLeft.calculate(wheelSpeeds.leftMetersPerSecond);
-    double rightFF = Constants.XRPDrivetrain.driveFFRight.calculate(wheelSpeeds.rightMetersPerSecond); 
+    double rightFF =
+        Constants.XRPDrivetrain.driveFFRight.calculate(wheelSpeeds.rightMetersPerSecond);
 
-    double leftOut = leftFF + ctrlLeft.calculate(getLeftSpeed(), wheelSpeeds.leftMetersPerSecond); 
-    double rightOut = rightFF + ctrlRight.calculate(getRightSpeed(), wheelSpeeds.rightMetersPerSecond);
+    double leftOut = leftFF + ctrlLeft.calculate(getLeftSpeed(), wheelSpeeds.leftMetersPerSecond);
+    double rightOut =
+        rightFF + ctrlRight.calculate(getRightSpeed(), wheelSpeeds.rightMetersPerSecond);
 
     driveVoltage(leftOut, rightOut);
   }
@@ -84,8 +94,8 @@ public class XRPDrivetrain extends BaseDrivetrain {
     m_leftEncoder.reset();
     m_rightEncoder.reset();
 
-    leftDist = 0; 
-    rightDist = 0; 
+    leftDist = 0;
+    rightDist = 0;
   }
 
   public double getLeftDistanceMeters() {
@@ -97,83 +107,80 @@ public class XRPDrivetrain extends BaseDrivetrain {
   }
 
   public Rotation2d getAngle() {
-    return Rotation2d.fromDegrees(gyro.getAngle()); 
+    return Rotation2d.fromDegrees(gyro.getAngle());
   }
 
   public Pose2d getPose() {
-    return odometry.getPoseMeters(); 
+    return odometry.getPoseMeters();
   }
 
   public void resetPose(Pose2d pose) {
-    odometry.resetPosition(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance(), pose);
+    odometry.resetPosition(
+        getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance(), pose);
   }
 
   public double getLeftSpeed() {
-    return (this.curLeftDist - this.leftDist) / Constants.robotPeriod; 
+    return (this.curLeftDist - this.leftDist) / Constants.robotPeriod;
   }
 
   public double getRightSpeed() {
-    return (this.curRightDist - this.rightDist) / Constants.robotPeriod;  
+    return (this.curRightDist - this.rightDist) / Constants.robotPeriod;
   }
 
   public double getLeftVolts() {
-    return m_leftMotor.get() * RobotController.getInputVoltage(); 
+    return m_leftMotor.get() * RobotController.getInputVoltage();
   }
 
   public double getRightVolts() {
-    return m_rightMotor.get() * RobotController.getInputVoltage(); 
+    return m_rightMotor.get() * RobotController.getInputVoltage();
   }
 
   public Field2d getField() {
-    return this.m_field; 
+    return this.m_field;
   }
 
   @Override
   public void periodic() {
-
-    // This method will be called once per scheduler run
-    this.odometry.update(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance()); 
-
+    this.odometry.update(getAngle(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance());
     this.m_field.setRobotPose(getPose());
-    SmartDashboard.putData(this.m_field); 
-    // SmartDashboard.putNumber("gyro angle", getAngle().getDegrees()); 
+    SmartDashboard.putData(this.m_field);
+    // System.out.println(getAngle());
 
+    // SmartDashboard.putNumber("gyro angle", getAngle().getDegrees());
 
-    // SmartDashboard.putNumber("Total Voltage", RobotController.getInputVoltage()); 
+    // SmartDashboard.putNumber("Total Voltage", RobotController.getInputVoltage());
 
-    // SmartDashboard.putNumber("Left Volts", getLeftVolts()); 
-    // SmartDashboard.putNumber("Left Last Distance", leftDist); 
-    // SmartDashboard.putNumber("Left Distance", getLeftDistanceMeters()); 
-    // SmartDashboard.putNumber("Left Velo", getLeftSpeed()); 
+    // SmartDashboard.putNumber("Left Volts", getLeftVolts());
+    // SmartDashboard.putNumber("Left Last Distance", leftDist);
+    // SmartDashboard.putNumber("Left Distance", getLeftDistanceMeters());
+    // SmartDashboard.putNumber("Left Velo", getLeftSpeed());
 
     // SmartDashboard.putNumber("Left Rate", m_leftEncoder.getRate());
-    // SmartDashboard.putNumber("Right Rate", m_rightEncoder.getRate()); 
+    // SmartDashboard.putNumber("Right Rate", m_rightEncoder.getRate());
 
-    // SmartDashboard.putNumber("Left Period", m_leftEncoder.getPeriod()); 
-    // SmartDashboard.putNumber("Right Period", m_rightEncoder.getPeriod()); 
+    // SmartDashboard.putNumber("Left Period", m_leftEncoder.getPeriod());
+    // SmartDashboard.putNumber("Right Period", m_rightEncoder.getPeriod());
 
-    
-    // SmartDashboard.putNumber("Right Velo", getRightSpeed()); 
-    
+    // SmartDashboard.putNumber("Right Velo", getRightSpeed());
+
     super.periodic();
 
     // if (loopsCount >= maxLoopsCount) {
-    //   loopsCount = 0; 
-      leftDist = this.curLeftDist; 
-      rightDist = this.curRightDist; 
-    this.curLeftDist = getLeftDistanceMeters(); 
-    this.curRightDist = getRightDistanceMeters(); 
+    //   loopsCount = 0;
+    leftDist = this.curLeftDist;
+    rightDist = this.curRightDist;
+    this.curLeftDist = getLeftDistanceMeters();
+    this.curRightDist = getRightDistanceMeters();
 
-    //   lastLeftSpeed = (this.curLeftDist - leftDist) / 0.02 / maxLoopsCount; 
-    //   lastRightSpeed = (this.curRightDist - rightDist) / 0.02 / maxLoopsCount; 
-    // } else loopsCount++; 
+    //   lastLeftSpeed = (this.curLeftDist - leftDist) / 0.02 / maxLoopsCount;
+    //   lastRightSpeed = (this.curRightDist - rightDist) / 0.02 / maxLoopsCount;
+    // } else loopsCount++;
 
-
-    
   }
 
-    @Override
-    public ChassisSpeeds getChassisSpeeds() {
-        return Constants.XRPDrivetrain.kinematics.toChassisSpeeds(new DifferentialDriveWheelSpeeds(getLeftSpeed(), getRightSpeed())); 
-    }
+  @Override
+  public ChassisSpeeds getChassisSpeeds() {
+    return Constants.XRPDrivetrain.kinematics.toChassisSpeeds(
+        new DifferentialDriveWheelSpeeds(getLeftSpeed(), getRightSpeed()));
+  }
 }
